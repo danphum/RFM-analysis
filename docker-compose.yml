@@ -1,0 +1,48 @@
+services:
+  # Vue Frontend
+  frontend:
+    build: ./frontend
+    container_name: rfm_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+  # FastAPI Backend
+  backend:
+    build: ./app
+    container_name: rfm_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app
+    environment:
+      DATABASE_URL: postgresql://rfm_user:rfm_password@db:5432/rfm_db
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # PostgreSQL Database
+  db:
+    image: postgres:16
+    container_name: rfm_database
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rfm_user
+      POSTGRES_PASSWORD: rfm_password
+      POSTGRES_DB: rfm_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rfm_user -d rfm_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
